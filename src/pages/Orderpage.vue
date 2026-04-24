@@ -33,7 +33,6 @@
           <div v-if="!filteredMenuItems.length" class="empty-state">
             <q-icon name="restaurant_menu" size="48px" color="grey-4" />
             <div class="empty-title">No items found</div>
-            <div class="empty-sub">Add items from the Items page first</div>
           </div>
 
           <div v-else class="menu-grid">

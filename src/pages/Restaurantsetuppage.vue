@@ -5,6 +5,7 @@
       <div class="page-header">
         <div>
           <div class="page-title">Restaurant Setup</div>
+          <div class="page-sub">Manage your restaurant profile & branches</div>
         </div>
         <q-btn
           v-if="!editing"
@@ -95,7 +96,7 @@
       <div class="section-header">
         <div>
           <div class="section-title">Branches</div>
-          <div class="section-sub">{{ restaurant.branches?.length || 0 }} branches added</div>
+          <div class="section-sub">{{ restaurant.branches?.length || 0 }} branch(es) added</div>
         </div>
         <q-btn unelevated icon="add" label="Add Branch" class="pos-btn" @click="openBranchDialog" />
       </div>
@@ -194,9 +195,8 @@ export default { name: 'RestaurantSetup' }
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { Notify } from 'quasar'
 
-const $q = useQuasar()
 const router = useRouter()
 
 const restaurant = ref({ name: '', phone: '', address: '', logo: '', branches: [] })
@@ -229,13 +229,17 @@ function cancelEdit() {
 
 function saveRestaurant() {
   if (!form.value.name || !form.value.phone || !form.value.address) {
-    $q.notify({ type: 'negative', message: 'Please fill in all required fields.', position: 'top' })
+    Notify.create({
+      type: 'negative',
+      message: 'Please fill in all required fields.',
+      position: 'top',
+    })
     return
   }
   restaurant.value = { ...restaurant.value, ...form.value }
   localStorage.setItem('pos_restaurant', JSON.stringify(restaurant.value))
   editing.value = false
-  $q.notify({ type: 'positive', message: 'Restaurant info saved!', position: 'top' })
+  Notify.create({ type: 'positive', message: 'Restaurant info saved!', position: 'top' })
 }
 
 function triggerLogoUpload() {
@@ -274,7 +278,7 @@ function saveBranch() {
   restaurant.value.branches = branches
   localStorage.setItem('pos_restaurant', JSON.stringify(restaurant.value))
   branchDialog.value = false
-  $q.notify({
+  Notify.create({
     type: 'positive',
     message: editingBranchIndex.value !== null ? 'Branch updated!' : 'Branch added!',
     position: 'top',
@@ -282,16 +286,10 @@ function saveBranch() {
 }
 
 function deleteBranch(index) {
-  $q.dialog({
-    title: 'Delete Branch',
-    message: 'Are you sure?',
-    ok: { label: 'Delete', color: 'negative', unelevated: true },
-    cancel: { label: 'Cancel', flat: true },
-  }).onOk(() => {
-    restaurant.value.branches.splice(index, 1)
-    localStorage.setItem('pos_restaurant', JSON.stringify(restaurant.value))
-    $q.notify({ type: 'warning', message: 'Branch deleted.', position: 'top' })
-  })
+  if (!confirm('Are you sure you want to delete this branch?')) return
+  restaurant.value.branches.splice(index, 1)
+  localStorage.setItem('pos_restaurant', JSON.stringify(restaurant.value))
+  Notify.create({ type: 'warning', message: 'Branch deleted.', position: 'top' })
 }
 </script>
 

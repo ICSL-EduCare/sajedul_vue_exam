@@ -31,13 +31,6 @@
         <div class="empty-title">
           {{ search || selectedCategory ? 'No items found' : 'No items yet' }}
         </div>
-        <div class="empty-sub">
-          {{
-            search || selectedCategory
-              ? 'Try a different search or filter'
-              : 'Click "Add Item" to add your first menu item'
-          }}
-        </div>
       </div>
 
       <!-- Items Grid -->
@@ -149,9 +142,8 @@ export default { name: 'ItemsPage' }
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { Notify } from 'quasar'
 
-const $q = useQuasar()
 const router = useRouter()
 
 const items = ref([])
@@ -226,26 +218,20 @@ function saveItem() {
   if (editingItem.value) {
     const idx = items.value.findIndex((i) => i.id === editingItem.value.id)
     if (idx !== -1) items.value[idx] = { ...editingItem.value, ...itemForm.value }
-    $q.notify({ type: 'positive', message: 'Item updated!', position: 'top' })
+    Notify.create({ type: 'positive', message: 'Item updated!', position: 'top' })
   } else {
     items.value.push({ id: Date.now(), ...itemForm.value, createdAt: new Date().toISOString() })
-    $q.notify({ type: 'positive', message: 'Item added!', position: 'top' })
+    Notify.create({ type: 'positive', message: 'Item added!', position: 'top' })
   }
   saveItems()
   itemDialog.value = false
 }
 
 function deleteItem(id) {
-  $q.dialog({
-    title: 'Delete Item',
-    message: 'Are you sure?',
-    ok: { label: 'Delete', color: 'negative', unelevated: true },
-    cancel: { label: 'Cancel', flat: true },
-  }).onOk(() => {
-    items.value = items.value.filter((i) => i.id !== id)
-    saveItems()
-    $q.notify({ type: 'warning', message: 'Item deleted.', position: 'top' })
-  })
+  if (!confirm('Are you sure you want to delete this item?')) return
+  items.value = items.value.filter((i) => i.id !== id)
+  saveItems()
+  Notify.create({ type: 'warning', message: 'Item deleted.', position: 'top' })
 }
 
 onMounted(() => {
