@@ -1,22 +1,49 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+  <q-layout view="hHh lpR fFf">
+    <q-header v-if="isLoggedIn" class="top-header">
+      <q-toolbar class="top-bar">
+        <!-- Left: Brand -->
+        <div class="brand">
+          <span class="brand-text">{{ restaurantName }}</span>
+        </div>
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <!-- Center: Nav links -->
+        <div class="nav-center">
+          <router-link
+            v-for="link in navLinks"
+            :key="link.to"
+            :to="link.to"
+            class="nav-link"
+            :class="{ 'nav-link--active': route.path === link.to }"
+          >
+            <span>{{ link.label }}</span>
+          </router-link>
+        </div>
 
-        <div>Quasar v{{ $q.version }}</div>
+        <!-- Right: Actions -->
+        <div class="top-actions">
+          <!-- Theme toggle -->
+          <q-toggle
+            v-model="darkMode"
+            checked-icon="nightlight_round"
+            unchecked-icon="wb_sunny"
+            color="orange"
+            @update:model-value="(val) => $q.dark.set(val)"
+          />
+
+          <div class="top-user">
+            <div class="top-avatar">{{ userInitials }}</div>
+            <span class="top-user-name">{{ currentUser?.name }}</span>
+          </div>
+
+          <!-- Logout power button -->
+          <q-btn flat round dense color="grey-4" @click="handleLogout">
+            <q-icon name="power_settings_new" size="18px" />
+            <q-tooltip>Logout</q-tooltip>
+          </q-btn>
+        </div>
       </q-toolbar>
     </q-header>
-
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
-
-        <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" />
-      </q-list>
-    </q-drawer>
 
     <q-page-container>
       <router-view />
@@ -25,57 +52,176 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useQuasar } from 'quasar'
 
-const linksList = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
-  },
+const $q = useQuasar()
+const router = useRouter()
+const route = useRoute()
+
+const currentUser = ref(null)
+const restaurantName = ref('SA Cafe')
+const darkMode = ref(false)
+
+const navLinks = [
+  { to: '/restaurant', icon: 'store', label: 'My Restaurant' },
+  { to: '/items', icon: 'restaurant_menu', label: 'All Items' },
+  { to: '/orders', icon: 'receipt_long', label: 'Orders' },
+  { to: '/invoices', icon: 'description', label: 'Invoices' },
 ]
 
-const leftDrawerOpen = ref(false)
+const isLoggedIn = computed(() => route.path !== '/')
 
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value
+const userInitials = computed(() => {
+  const name = currentUser.value?.name || ''
+  return (
+    name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U'
+  )
+})
+
+watch(
+  () => route.path,
+  () => {
+    currentUser.value = JSON.parse(localStorage.getItem('pos_current_user') || 'null')
+    loadRestaurantName()
+    darkMode.value = $q.dark.isActive
+  },
+)
+
+function handleLogout() {
+  if (!confirm('Are you sure you want to logout?')) return
+  localStorage.removeItem('pos_current_user')
+  currentUser.value = null
+  router.push('/')
 }
+
+function loadRestaurantName() {
+  const rest = JSON.parse(localStorage.getItem('pos_restaurant') || 'null')
+  restaurantName.value = rest?.name || 'SA Cafe'
+}
+
+onMounted(() => {
+  currentUser.value = JSON.parse(localStorage.getItem('pos_current_user') || 'null')
+  loadRestaurantName()
+  darkMode.value = $q.dark.isActive
+})
 </script>
+
+<style scoped>
+.top-header {
+  background: #0f172a !important;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.top-bar {
+  height: 56px;
+  min-height: 56px;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+/* Left - Brand */
+.brand {
+  justify-self: start;
+}
+
+.brand-text {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'Georgia', serif;
+  letter-spacing: -0.3px;
+}
+
+/* Center - Nav */
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: center;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 7px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #94a3b8;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.nav-link--active {
+  background: #e05a2b !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+/* Right - Actions */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+}
+
+.top-user {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.top-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #e05a2b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.top-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  .top-bar {
+    grid-template-columns: auto 1fr auto;
+  }
+  .nav-center {
+    overflow-x: auto;
+    gap: 0;
+  }
+  .nav-link {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .top-user-name {
+    display: none;
+  }
+}
+</style>
